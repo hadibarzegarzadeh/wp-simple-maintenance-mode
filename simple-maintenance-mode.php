@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Maintenance Mode
  * Description: Shows a maintenance page to visitors while administrators keep full access. Design multiple maintenance pages with Elementor and choose which one is displayed.
- * Version: 2.0.0
+ * Version: 2.1.0
  * Author: hadibarzegarzadeh
  * License: GPL-2.0-or-later
  * Text Domain: simple-maintenance-mode
@@ -22,3 +22,13 @@ require_once SMM_PATH . 'includes/frontend.php';
 
 require_once SMM_PATH . 'admin/admin.php';
 require_once SMM_PATH . 'admin/settings-page.php';
+
+register_activation_hook(
+	__FILE__,
+	function () {
+		smm_register_cpt();
+		flush_rewrite_rules();
+	}
+);
+
+register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );

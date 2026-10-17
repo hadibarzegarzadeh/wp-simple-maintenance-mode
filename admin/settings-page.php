@@ -18,10 +18,20 @@ function smm_settings_page() {
 		)
 	);
 
-	$selected     = (int) get_option( 'smm_page_id', 0 );
+	$enabled       = (int) get_option( 'smm_enabled', 0 );
+	$selected      = (int) get_option( 'smm_page_id', 0 );
 	$has_elementor = defined( 'ELEMENTOR_VERSION' );
-	$create_url   = wp_nonce_url( admin_url( 'admin-post.php?action=smm_create_page' ), 'smm_create_page' );
+	$create_url    = wp_nonce_url( admin_url( 'admin-post.php?action=smm_create_page' ), 'smm_create_page' );
 	?>
+	<style>
+		.smm-switch{position:relative;display:inline-block;width:54px;height:28px}
+		.smm-switch input{opacity:0;width:0;height:0}
+		.smm-slider{position:absolute;cursor:pointer;inset:0;background:#b4b9be;border-radius:28px;transition:.2s}
+		.smm-slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+		.smm-switch input:checked+.smm-slider{background:#d63638}
+		.smm-switch input:checked+.smm-slider:before{transform:translateX(26px)}
+		.smm-state{margin-left:10px;font-weight:600;vertical-align:top;line-height:28px}
+	</style>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Maintenance Mode', 'simple-maintenance-mode' ); ?></h1>
 
@@ -33,10 +43,17 @@ function smm_settings_page() {
 
 		<form method="post" action="options.php">
 			<?php settings_fields( 'smm_group' ); ?>
+			<input type="hidden" name="smm_enabled" value="0" />
 			<table class="form-table">
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Enable maintenance mode', 'simple-maintenance-mode' ); ?></th>
-					<td><input type="checkbox" name="smm_enabled" value="1" <?php checked( 1, get_option( 'smm_enabled', 0 ) ); ?> /></td>
+					<th scope="row"><?php esc_html_e( 'Maintenance mode', 'simple-maintenance-mode' ); ?></th>
+					<td>
+						<label class="smm-switch">
+							<input type="checkbox" name="smm_enabled" value="1" <?php checked( 1, $enabled ); ?> />
+							<span class="smm-slider"></span>
+						</label>
+						<span class="smm-state"><?php echo $enabled ? esc_html__( 'ON', 'simple-maintenance-mode' ) : esc_html__( 'OFF', 'simple-maintenance-mode' ); ?></span>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Page shown to visitors', 'simple-maintenance-mode' ); ?></th>
@@ -44,12 +61,13 @@ function smm_settings_page() {
 						<select name="smm_page_id">
 							<option value="0"><?php esc_html_e( 'Default message (no page)', 'simple-maintenance-mode' ); ?></option>
 							<?php foreach ( $pages as $page ) : ?>
-								<option value="<?php echo esc_attr( $page->ID ); ?>" <?php selected( $selected, $page->ID ); ?> <?php disabled( 'publish' !== $page->post_status ); ?>>
-									<?php echo esc_html( $page->post_title . ( 'publish' === $page->post_status ? '' : ' (' . $page->post_status . ')' ) ); ?>
+								<?php if ( 'publish' !== $page->post_status ) { continue; } ?>
+								<option value="<?php echo esc_attr( $page->ID ); ?>" <?php selected( $selected, $page->ID ); ?>>
+									<?php echo esc_html( '' !== $page->post_title ? $page->post_title : '#' . $page->ID ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php esc_html_e( 'Only published pages can be selected. Publish a page from the Elementor editor first.', 'simple-maintenance-mode' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Only published pages are listed. Publish a page from the Elementor editor first.', 'simple-maintenance-mode' ); ?></p>
 					</td>
 				</tr>
 				<tr>

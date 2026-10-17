@@ -43,8 +43,8 @@ function smm_handle_create_page() {
 		)
 	);
 
-	if ( is_wp_error( $post_id ) ) {
-		wp_die( esc_html( $post_id->get_error_message() ) );
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		wp_die( esc_html__( 'Could not create the page.', 'simple-maintenance-mode' ) );
 	}
 
 	if ( defined( 'ELEMENTOR_VERSION' ) ) {
@@ -57,19 +57,56 @@ function smm_handle_create_page() {
 	exit;
 }
 
+add_action( 'admin_post_smm_toggle', 'smm_handle_toggle' );
+
+function smm_handle_toggle() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You are not allowed to do this.', 'simple-maintenance-mode' ) );
+	}
+	check_admin_referer( 'smm_toggle' );
+
+	update_option( 'smm_enabled', get_option( 'smm_enabled', 0 ) ? 0 : 1 );
+
+	$back = wp_get_referer();
+	if ( ! $back ) {
+		$back = admin_url( 'admin.php?page=smm-settings' );
+	}
+	wp_safe_redirect( $back );
+	exit;
+}
+
 add_action(
 	'admin_bar_menu',
 	function ( $bar ) {
-		if ( ! get_option( 'smm_enabled', 0 ) || ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		$on  = (int) get_option( 'smm_enabled', 0 );
+		$url = wp_nonce_url( admin_url( 'admin-post.php?action=smm_toggle' ), 'smm_toggle' );
 		$bar->add_node(
 			array(
 				'id'    => 'smm-status',
-				'title' => esc_html__( 'Maintenance mode is ON', 'simple-maintenance-mode' ),
-				'href'  => admin_url( 'admin.php?page=smm-settings' ),
+				'title' => $on ? esc_html__( 'Maintenance: ON (click to turn off)', 'simple-maintenance-mode' ) : esc_html__( 'Maintenance: OFF (click to turn on)', 'simple-maintenance-mode' ),
+				'href'  => $url,
+				'meta'  => array( 'class' => $on ? 'smm-on' : 'smm-off' ),
 			)
 		);
 	},
 	100
+);
+
+add_action(
+	'admin_head',
+	function () {
+		echo '<style>#wp-admin-bar-smm-status.smm-on>a{background:#d63638!important;color:#fff!important}</style>';
+	}
+);
+
+add_action(
+	'wp_head',
+	function () {
+		if ( is_admin_bar_showing() ) {
+			echo '<style>#wp-admin-bar-smm-status.smm-on>a{background:#d63638!important;color:#fff!important}</style>';
+		}
+	}
 );
